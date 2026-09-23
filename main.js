@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { createPlaceholderBoat } from './boat.js';
 
 const container = document.querySelector('#scene');
 const error = document.querySelector('#error');
@@ -16,17 +17,17 @@ container.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#293e48');
-const camera = new THREE.PerspectiveCamera(52, 1, 0.08, 350);
-const initialPosition = new THREE.Vector3(0, 6.2, 17);
+const camera = new THREE.PerspectiveCamera(52, 1, 0.08, 2400);
+const initialPosition = new THREE.Vector3(0, 6.8, 19);
 camera.position.copy(initialPosition);
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 0, 0);
+controls.target.set(0, 1.1, 0);
 controls.enableDamping = true;
 controls.dampingFactor = 0.07;
-controls.minDistance = 2;
-controls.maxDistance = 55;
+controls.minDistance = 7;
+controls.maxDistance = 90;
 controls.minPolarAngle = 0.07;
-controls.maxPolarAngle = Math.PI / 2 - 0.012;
+controls.maxPolarAngle = Math.PI / 2 - 0.05;
 controls.enablePan = false;
 controls.update();
 
@@ -34,9 +35,16 @@ const uniforms = {
   uTime: { value: 0 },
   uPalette: { value: 0 },
   uCamera: { value: camera.position },
+  uOceanOffset: { value: new THREE.Vector2() },
+  uBoatPos: { value: new THREE.Vector2() },
+  uForward: { value: new THREE.Vector2(0, -1) },
+  uSpeed: { value: 0 },
 };
 
 const sharedWaves = /* glsl */ `
+  uniform vec2 uBoatPos;
+  uniform vec2 uForward;
+  uniform float uSpeed;
   float hash21(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
   }
@@ -50,11 +58,17 @@ const sharedWaves = /* glsl */ `
     float bend = (noise2(p * 0.13 + vec2(t * 0.04, 0.0)) - 0.5) * 1.5;
     p.x += bend;
     float h = 0.0;
-    h += 0.23 * sin(p.y * 1.08 + p.x * 0.21 + t * 0.50);
-    h += 0.12 * sin(p.y * 2.36 - p.x * 0.48 - t * 0.92);
-    h += 0.065 * sin(p.y * 4.83 + p.x * 1.42 + t * 1.43);
-    h += 0.031 * sin(p.y * 9.0 - p.x * 2.4 - t * 2.12);
-    h += 0.025 * sin(p.x * 3.3 + p.y * 3.9 + t * 0.85);
+    h += 0.43 * sin(p.y * 0.54 + p.x * 0.17 + t * 0.48);
+    h += 0.29 * sin(p.y * 0.81 - p.x * 0.37 - t * 0.72);
+    h += 0.19 * sin(p.y * 1.48 + p.x * 0.41 + t * 0.92);
+    h += 0.10 * sin(p.y * 3.1 - p.x * 1.6 - t * 1.52);
+    h += 0.04 * sin(p.x * 5.4 + p.y * 4.5 + t * 2.3);
+    vec2 rel = vec2(p.x, -p.y) - uBoatPos;
+    float aft = -dot(rel, uForward);
+    float side = dot(rel, vec2(-uForward.y, uForward.x));
+    float spread = 2.0 + max(aft, 0.0) * 0.20;
+    float wake = smoothstep(0.0, 2.0, aft) * (1.0 - smoothstep(15.0, 90.0, aft)) * exp(-side * side / (spread * spread));
+    h += uSpeed * wake * 0.14 * sin(aft * 3.8 - t * 8.0);
     return h;
   }
 `;
@@ -63,10 +77,12 @@ const material = new THREE.ShaderMaterial({
   uniforms,
   vertexShader: /* glsl */ `
     uniform float uTime;
+    uniform vec2 uOceanOffset;
     varying vec3 vWorld;
     ${sharedWaves}
     void main() {
-      vec3 p = vec3(position.x, surface(position.xy, uTime), -position.y);
+      vec2 waveP = position.xy + uOceanOffset;
+      vec3 p = vec3(position.x, surface(waveP, uTime), -position.y);
       vec4 world = modelMatrix * vec4(p, 1.0);
       vWorld = world.xyz;
       gl_Position = projectionMatrix * viewMatrix * world;
@@ -108,25 +124,103 @@ const material = new THREE.ShaderMaterial({
       vec3 white = mix(vec3(0.92, 0.96, 0.93), vec3(1.0, 0.96, 0.80), uPalette);
       base = mix(base, white, glint * 0.94);
 
+      vec2 rel = vWorld.xz - uBoatPos;
+      float aft = -dot(rel, uForward);
+      float side = dot(rel, vec2(-uForward.y, uForward.x));
+      float wakeWidth = 0.9 + max(aft, 0.0) * 0.18;
+      float churn = smoothstep(-3.5, 2.5, aft) * (1.0 - smoothstep(12.0, 55.0, aft));
+      float spread = exp(-side * side / (wakeWidth * wakeWidth));
+      float froth = smoothstep(0.38, 0.76, noise2(p * 4.7 + vec2(uTime * 1.1, 0.0)));
+      float foam = uSpeed * churn * spread * (0.25 + froth * 0.75);
+      float bow = exp(-pow(length(rel - uForward * 3.7) / 2.2, 2.0)) * uSpeed * froth;
+      base = mix(base, white, clamp(foam * 0.9 + bow * 0.65, 0.0, 0.9));
+
       // Distance haze softens the far water without turning it into a flat image.
       float distanceToEye = length(uCamera - vWorld);
-      float haze = smoothstep(27.0, 125.0, distanceToEye) * 0.48;
-      vec3 horizon = mix(vec3(0.29, 0.41, 0.47), vec3(0.49, 0.49, 0.43), uPalette);
+      float haze = smoothstep(90.0, 1200.0, distanceToEye) * 0.96;
+      vec3 horizon = mix(vec3(0.22, 0.34, 0.43), vec3(0.43, 0.43, 0.44), uPalette);
       gl_FragColor = vec4(mix(base, horizon, haze), 1.0);
     }
   `,
 });
 
-const geometry = new THREE.PlaneGeometry(240, 240, 280, 280);
-const water = new THREE.Mesh(geometry, material);
+// Dense rings near the boat, wider rings toward the horizon.
+function makeOceanGeometry() {
+  const positions = [0, 0, 0], indices = [];
+  const sides = 192, rings = 76;
+  for (let j = 0; j < rings; j++) {
+    const r = 0.4 * Math.pow(1.12, j);
+    for (let i = 0; i < sides; i++) {
+      const a = i * Math.PI * 2 / sides;
+      positions.push(Math.cos(a) * r, Math.sin(a) * r, 0);
+    }
+  }
+  for (let i = 0; i < sides; i++) indices.push(0, 1 + i, 1 + (i + 1) % sides);
+  for (let j = 0; j < rings - 1; j++) {
+    const inner = 1 + j * sides, outer = inner + sides;
+    for (let i = 0; i < sides; i++) {
+      const next = (i + 1) % sides;
+      indices.push(inner + i, outer + i, outer + next, inner + i, outer + next, inner + next);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  return geometry;
+}
+const water = new THREE.Mesh(makeOceanGeometry(), material);
 water.frustumCulled = false;
 scene.add(water);
+
+const sky = new THREE.Mesh(new THREE.SphereGeometry(1600, 48, 24), new THREE.ShaderMaterial({
+  uniforms: { uPalette: uniforms.uPalette, uTime: uniforms.uTime },
+  side: THREE.BackSide,
+  depthWrite: false,
+  depthTest: false,
+  vertexShader: `varying vec3 vDir; void main() { vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `
+    precision highp float;
+    uniform float uPalette;
+    uniform float uTime;
+    varying vec3 vDir;
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float noise(vec2 p) {
+      vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hash(i), hash(i + vec2(1., 0.)), f.x),
+                 mix(hash(i + vec2(0., 1.)), hash(i + 1.), f.x), f.y);
+    }
+    void main() {
+      vec3 d = normalize(vDir);
+      float alt = max(d.y, 0.0);
+      vec3 horizon = mix(vec3(0.22, 0.34, 0.43), vec3(0.43, 0.43, 0.44), uPalette);
+      vec3 zenith = mix(vec3(0.055, 0.085, 0.18), vec3(0.19, 0.18, 0.25), uPalette);
+      vec3 color = mix(horizon, zenith, smoothstep(0.0, 0.88, alt));
+      vec2 cp = vec2(atan(d.z, d.x) * 2.6, d.y * 7.5);
+      float n = noise(cp * 1.7 + vec2(uTime * 0.007, 0.0)) * 0.55;
+      n += noise(cp * 3.4 - vec2(uTime * 0.012, 0.0)) * 0.3;
+      n += noise(cp * 7.0) * 0.15;
+      float cloud = smoothstep(0.43, 0.63, n) * smoothstep(0.015, 0.19, alt);
+      vec3 cloudColor = mix(vec3(0.38, 0.42, 0.52), vec3(0.57, 0.52, 0.55), uPalette);
+      color = mix(color, cloudColor, cloud * 0.58);
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `,
+}));
+sky.renderOrder = -10;
+scene.add(sky);
+
+scene.add(new THREE.HemisphereLight(0xdce9f0, 0x263843, 2.2));
+const sunlight = new THREE.DirectionalLight(0xf6e6c6, 2.2);
+sunlight.position.set(-15, 30, 24);
+scene.add(sunlight);
+const boat = createPlaceholderBoat();
+scene.add(boat);
 
 const palettes = document.querySelectorAll('[data-palette]');
 palettes.forEach(button => button.addEventListener('click', () => {
   const selected = Number(button.dataset.palette);
   uniforms.uPalette.value = selected;
-  scene.background.set(selected ? '#6a6a60' : '#293e48');
+  scene.background.set(selected ? '#6e6d70' : '#293e48');
   palettes.forEach(b => {
     const active = b === button;
     b.classList.toggle('active', active);
@@ -134,16 +228,91 @@ palettes.forEach(button => button.addEventListener('click', () => {
   });
 }));
 
-let playing = true;
-const motion = document.querySelector('#motion');
-motion.addEventListener('click', () => {
-  playing = !playing;
-  motion.setAttribute('aria-pressed', String(playing));
-  motion.innerHTML = playing ? '波を止める <span aria-hidden="true">Ⅱ</span>' : '波を動かす <span aria-hidden="true">▶</span>';
+const throttle = document.querySelector('#throttle');
+const throttleValue = document.querySelector('#throttle-value');
+const speedDisplay = document.querySelector('#speed');
+const headingDisplay = document.querySelector('#heading');
+const held = new Set();
+const state = { x: 0, z: 0, heading: 0, speed: 0, throttle: 0 };
+const setThrottle = value => {
+  state.throttle = Math.max(0, Math.min(1, value));
+  throttle.value = String(Math.round(state.throttle * 100));
+  throttleValue.textContent = `${Math.round(state.throttle * 100)}%`;
+};
+throttle.addEventListener('input', () => setThrottle(Number(throttle.value) / 100));
+const keyMap = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
+window.addEventListener('keydown', e => {
+  const key = keyMap[e.code];
+  if (!key || e.altKey || e.ctrlKey || e.metaKey) return;
+  if (document.activeElement === throttle && e.code.startsWith('Arrow')) return;
+  e.preventDefault();
+  held.add(key);
 });
+window.addEventListener('keyup', e => { if (keyMap[e.code]) held.delete(keyMap[e.code]); });
+window.addEventListener('blur', () => held.clear());
+for (const side of ['left', 'right']) {
+  const button = document.querySelector(`#${side}`);
+  button.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    button.setPointerCapture(e.pointerId);
+    held.add(side);
+    button.classList.add('pressed');
+  });
+  const release = () => { held.delete(side); button.classList.remove('pressed'); };
+  button.addEventListener('pointerup', release);
+  button.addEventListener('pointercancel', release);
+  button.addEventListener('lostpointercapture', release);
+}
+function sampleWave(x, z, t) {
+  const y = -z;
+  return 0.43 * Math.sin(y * 0.54 + x * 0.17 + t * 0.48)
+    + 0.29 * Math.sin(y * 0.81 - x * 0.37 - t * 0.72)
+    + 0.19 * Math.sin(y * 1.48 + x * 0.41 + t * 0.92)
+    + 0.10 * Math.sin(y * 3.1 - x * 1.6 - t * 1.52);
+}
+function moveBoat(dt) {
+  if (held.has('up')) setThrottle(state.throttle + dt * 0.36);
+  if (held.has('down')) setThrottle(state.throttle - dt * 0.47);
+  state.speed += (state.throttle * 18 - state.speed) * (1 - Math.exp(-dt * 0.85));
+  const steer = Number(held.has('right')) - Number(held.has('left'));
+  state.heading += steer * dt * (0.14 + 0.68 * state.speed / 18);
+  const forwardX = -Math.sin(state.heading), forwardZ = -Math.cos(state.heading);
+  state.x += forwardX * state.speed * dt * 0.65;
+  state.z += forwardZ * state.speed * dt * 0.65;
+  uniforms.uBoatPos.value.set(state.x, state.z);
+  uniforms.uForward.value.set(forwardX, forwardZ);
+  uniforms.uSpeed.value = state.speed / 18;
+  uniforms.uOceanOffset.value.set(state.x, -state.z);
+  water.position.set(state.x, 0, state.z);
+  sky.position.set(state.x, 0, state.z);
+
+  const t = uniforms.uTime.value;
+  const center = sampleWave(state.x, state.z, t);
+  const front = sampleWave(state.x + forwardX * 3.0, state.z + forwardZ * 3.0, t);
+  const back = sampleWave(state.x - forwardX * 3.0, state.z - forwardZ * 3.0, t);
+  const rightX = -forwardZ, rightZ = forwardX;
+  const left = sampleWave(state.x - rightX, state.z - rightZ, t);
+  const right = sampleWave(state.x + rightX, state.z + rightZ, t);
+  const targetPitch = Math.atan2(front - back, 6);
+  const targetRoll = Math.atan2(right - left, 2.5);
+  const smoothing = 1 - Math.exp(-dt * 3);
+  boat.position.set(state.x, THREE.MathUtils.lerp(boat.position.y, center + 0.04, smoothing), state.z);
+  boat.rotation.order = 'YXZ';
+  boat.rotation.y = state.heading;
+  boat.rotation.x = THREE.MathUtils.lerp(boat.rotation.x, targetPitch, smoothing);
+  boat.rotation.z = THREE.MathUtils.lerp(boat.rotation.z, targetRoll, smoothing);
+
+  const target = new THREE.Vector3(state.x, boat.position.y + 1.0, state.z);
+  const delta = target.sub(controls.target);
+  camera.position.add(delta);
+  controls.target.add(delta);
+  speedDisplay.textContent = state.speed.toFixed(1).padStart(4, '0');
+  headingDisplay.textContent = String(((Math.round(THREE.MathUtils.radToDeg(state.heading)) % 360) + 360) % 360).padStart(3, '0');
+}
 document.querySelector('#reset').addEventListener('click', () => {
-  camera.position.copy(initialPosition);
-  controls.target.set(0, 0, 0);
+  const x = -Math.sin(state.heading), z = -Math.cos(state.heading);
+  camera.position.set(state.x - x * 19, boat.position.y + 6.8, state.z - z * 19);
+  controls.target.set(state.x, boat.position.y + 1.0, state.z);
   controls.update();
 });
 
@@ -160,7 +329,8 @@ let previous = 0;
 function frame(now) {
   const dt = previous ? Math.min((now - previous) / 1000, 0.05) : 0;
   previous = now;
-  if (playing) uniforms.uTime.value += dt;
+  uniforms.uTime.value += dt;
+  moveBoat(dt);
   controls.update();
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
