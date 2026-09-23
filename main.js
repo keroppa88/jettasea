@@ -118,7 +118,7 @@ const material = new THREE.ShaderMaterial({
         float turquoise = smoothstep(0.37, 0.72, noise2(p * 0.018 + vec2(3.7, 1.3)));
         base = mix(base, vec3(0.01, 0.66, 0.76), turquoise * 0.19);
       }
-      else if (uPalette > 2.5) base = mix(vec3(0.083, 0.035, 0.055), vec3(0.35, 0.16, 0.15), ink);
+      else if (uPalette > 2.5) base = mix(vec3(0.13, 0.055, 0.04), vec3(0.58, 0.29, 0.11), ink);
       else if (uPalette > 1.5) base = mix(vec3(0.009, 0.018, 0.052), vec3(0.052, 0.095, 0.23), ink);
       else if (uPalette > 0.5) base = warmShadow;
 
@@ -132,13 +132,13 @@ const material = new THREE.ShaderMaterial({
       float facing = pow(1.0 - max(dot(n, viewDir), 0.0), 2.0);
       vec3 sky = vec3(0.43, 0.57, 0.61);
       if (uPalette > 3.5) sky = vec3(0.30, 0.67, 0.84);
-      else if (uPalette > 2.5) sky = vec3(0.88, 0.46, 0.34);
+      else if (uPalette > 2.5) sky = vec3(1.0, 0.65, 0.30);
       else if (uPalette > 1.5) sky = vec3(0.27, 0.39, 0.63);
       else if (uPalette > 0.5) sky = vec3(0.73, 0.70, 0.56);
       base = mix(base, sky, facing * mix(0.42, 0.40, summer));
       vec3 white = vec3(0.92, 0.96, 0.93);
       if (uPalette > 3.5) white = vec3(0.98, 1.0, 1.0);
-      else if (uPalette > 2.5) white = vec3(1.0, 0.79, 0.56);
+      else if (uPalette > 2.5) white = vec3(1.0, 0.88, 0.52);
       else if (uPalette > 1.5) white = vec3(0.80, 0.88, 1.0);
       else if (uPalette > 0.5) white = vec3(1.0, 0.96, 0.80);
       base = mix(base, white, glint * 0.94);
@@ -159,7 +159,7 @@ const material = new THREE.ShaderMaterial({
       float haze = smoothstep(90.0, 1200.0, distanceToEye) * 0.96;
       vec3 horizon = vec3(0.22, 0.34, 0.43);
       if (uPalette > 3.5) horizon = vec3(0.01, 0.43, 0.72);
-      else if (uPalette > 2.5) horizon = vec3(0.60, 0.33, 0.34);
+      else if (uPalette > 2.5) horizon = vec3(0.92, 0.53, 0.23);
       else if (uPalette > 1.5) horizon = vec3(0.16, 0.24, 0.39);
       else if (uPalette > 0.5) horizon = vec3(0.43, 0.43, 0.44);
       gl_FragColor = vec4(mix(base, horizon, haze), 1.0);
@@ -218,7 +218,7 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(1600, 48, 24), new THREE.Sha
       vec3 horizon = vec3(0.22, 0.34, 0.43);
       vec3 zenith = vec3(0.055, 0.085, 0.18);
       if (uPalette > 3.5) { horizon = vec3(0.94, 0.98, 1.0); zenith = vec3(0.35, 0.63, 0.85); }
-      else if (uPalette > 2.5) { horizon = vec3(0.60, 0.33, 0.34); zenith = vec3(0.25, 0.12, 0.25); }
+      else if (uPalette > 2.5) { horizon = vec3(1.0, 0.74, 0.38); zenith = vec3(0.44, 0.21, 0.29); }
       else if (uPalette > 1.5) { horizon = vec3(0.16, 0.24, 0.39); zenith = vec3(0.030, 0.045, 0.13); }
       else if (uPalette > 0.5) { horizon = vec3(0.43, 0.43, 0.44); zenith = vec3(0.19, 0.18, 0.25); }
       // A bright, continuous band of summer haze sits just above the blue sea.
@@ -244,11 +244,11 @@ const palettes = document.querySelectorAll('[data-palette]');
 palettes.forEach(button => button.addEventListener('click', () => {
   const selected = Number(button.dataset.palette);
   uniforms.uPalette.value = selected;
-  const sceneColors = ['#293e48', '#6e6d70', '#202e4e', '#99545a', '#2e85d6'];
+  const sceneColors = ['#293e48', '#6e6d70', '#202e4e', '#d68448', '#2e85d6'];
   scene.background.set(sceneColors[selected]);
   clouds.setPalette(selected);
-  sunlight.color.set(['#f6e6c6', '#f5e5c8', '#b8d4ff', '#ffb57d', '#fff4da'][selected]);
-  ambient.color.set(['#dce9f0', '#e8e4d8', '#b6c8ee', '#edb8ab', '#e0f4ff'][selected]);
+  sunlight.color.set(['#f6e6c6', '#f5e5c8', '#b8d4ff', '#ffe0a0', '#fff4da'][selected]);
+  ambient.color.set(['#dce9f0', '#e8e4d8', '#b6c8ee', '#ffd3a0', '#e0f4ff'][selected]);
   palettes.forEach(b => {
     const active = b === button;
     b.classList.toggle('active', active);
@@ -303,7 +303,7 @@ function moveBoat(dt) {
   if (held.has('down')) setThrottle(state.throttle - dt * 0.47);
   state.speed += (state.throttle * 18 - state.speed) * (1 - Math.exp(-dt * 0.85));
   const steer = Number(held.has('right')) - Number(held.has('left'));
-  state.heading += steer * dt * (0.14 + 0.68 * state.speed / 18);
+  state.heading -= steer * dt * (0.14 + 0.68 * state.speed / 18);
   const forwardX = -Math.sin(state.heading), forwardZ = -Math.cos(state.heading);
   state.x += forwardX * state.speed * dt * 0.5144;
   state.z += forwardZ * state.speed * dt * 0.5144;
@@ -337,7 +337,7 @@ function moveBoat(dt) {
   camera.position.add(delta);
   controls.target.add(delta);
   speedDisplay.textContent = state.speed.toFixed(1).padStart(4, '0');
-  headingDisplay.textContent = String(((Math.round(THREE.MathUtils.radToDeg(state.heading)) % 360) + 360) % 360).padStart(3, '0');
+  headingDisplay.textContent = String(((Math.round(-THREE.MathUtils.radToDeg(state.heading)) % 360) + 360) % 360).padStart(3, '0');
 }
 document.querySelector('#reset').addEventListener('click', () => {
   const x = -Math.sin(state.heading), z = -Math.cos(state.heading);
