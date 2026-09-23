@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createPlaceholderBoat } from './boat.js';
 import { createClouds } from './clouds.js';
+import { createRain } from './rain.js';
 
 const container = document.querySelector('#scene');
 const error = document.querySelector('#error');
@@ -40,12 +41,14 @@ const uniforms = {
   uBoatPos: { value: new THREE.Vector2() },
   uForward: { value: new THREE.Vector2(0, -1) },
   uSpeed: { value: 0 },
+  uWaveLevel: { value: 3 },
 };
 
 const sharedWaves = /* glsl */ `
   uniform vec2 uBoatPos;
   uniform vec2 uForward;
   uniform float uSpeed;
+  uniform float uWaveLevel;
   float hash21(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
   }
@@ -59,11 +62,17 @@ const sharedWaves = /* glsl */ `
     float bend = (noise2(p * 0.13 + vec2(t * 0.04, 0.0)) - 0.5) * 1.5;
     p.x += bend;
     float h = 0.0;
-    h += 0.43 * sin(p.y * 0.54 + p.x * 0.17 + t * 0.48);
-    h += 0.29 * sin(p.y * 0.81 - p.x * 0.37 - t * 0.72);
-    h += 0.19 * sin(p.y * 1.48 + p.x * 0.41 + t * 0.92);
-    h += 0.10 * sin(p.y * 3.1 - p.x * 1.6 - t * 1.52);
-    h += 0.04 * sin(p.x * 5.4 + p.y * 4.5 + t * 2.3);
+    float amplitude = uWaveLevel < 3.0 ? mix(0.10, 1.0, (uWaveLevel - 1.0) * 0.5) : mix(1.0, 2.25, (uWaveLevel - 3.0) * 0.5);
+    h += amplitude * (
+      0.43 * sin(p.y * 0.54 + p.x * 0.17 + t * 0.48)
+      + 0.29 * sin(p.y * 0.81 - p.x * 0.37 - t * 0.72)
+      + 0.19 * sin(p.y * 1.48 + p.x * 0.41 + t * 0.92)
+      + 0.10 * sin(p.y * 3.1 - p.x * 1.6 - t * 1.52)
+      + 0.04 * sin(p.x * 5.4 + p.y * 4.5 + t * 2.3)
+    );
+    float storm = max(0.0, (uWaveLevel - 3.0) * 0.5);
+    h += storm * (0.82 * sin(p.y * 0.23 - p.x * 0.13 + t * 0.60)
+      + 0.48 * sin(p.y * 0.34 + p.x * 0.25 - t * 0.76));
     vec2 rel = vec2(p.x, -p.y) - uBoatPos;
     float aft = -dot(rel, uForward);
     float side = dot(rel, vec2(-uForward.y, uForward.x));
@@ -108,6 +117,7 @@ const material = new THREE.ShaderMaterial({
       float broad = noise2(p * 0.27 + vec2(uTime * 0.035, 0.0));
       float detail = noise2(p * 1.65 + vec2(uTime * 0.1));
       float summer = step(3.5, uPalette);
+      float storm = max(0.0, (uWaveLevel - 3.0) * 0.5);
       float ink = smoothstep(mix(0.39, 0.26, summer), mix(0.76, 0.66, summer), broad * 0.6 + detail * 0.4 + 0.16 * n.x);
       vec3 shadow = mix(vec3(0.016, 0.035, 0.046), vec3(0.085, 0.145, 0.162), ink);
       vec3 warmShadow = mix(vec3(0.068, 0.073, 0.070), vec3(0.25, 0.263, 0.224), ink);
@@ -136,12 +146,13 @@ const material = new THREE.ShaderMaterial({
       else if (uPalette > 1.5) sky = vec3(0.27, 0.39, 0.63);
       else if (uPalette > 0.5) sky = vec3(0.73, 0.70, 0.56);
       base = mix(base, sky, facing * mix(0.42, 0.40, summer));
+      base *= mix(vec3(1.0), vec3(0.55, 0.68, 0.79), storm);
       vec3 white = vec3(0.92, 0.96, 0.93);
       if (uPalette > 3.5) white = vec3(0.98, 1.0, 1.0);
       else if (uPalette > 2.5) white = vec3(1.0, 0.88, 0.52);
       else if (uPalette > 1.5) white = vec3(0.80, 0.88, 1.0);
       else if (uPalette > 0.5) white = vec3(1.0, 0.96, 0.80);
-      base = mix(base, white, glint * 0.94);
+      base = mix(base, white, glint * mix(0.94, 0.35, storm));
 
       vec2 rel = vWorld.xz - uBoatPos;
       float aft = -dot(rel, uForward);
@@ -153,6 +164,8 @@ const material = new THREE.ShaderMaterial({
       float foam = uSpeed * churn * spread * (0.25 + froth * 0.75);
       float bow = exp(-pow(length(rel - uForward * 3.7) / 2.2, 2.0)) * uSpeed * froth;
       base = mix(base, white, clamp(foam * 0.9 + bow * 0.65, 0.0, 0.9));
+      float crest = smoothstep(0.72, 1.35, vWorld.y) * smoothstep(0.34, 0.72, detail);
+      base = mix(base, vec3(0.84, 0.91, 0.92), crest * storm * 0.73);
 
       // Distance haze softens the far water without turning it into a flat image.
       float distanceToEye = length(uCamera - vWorld);
@@ -162,6 +175,7 @@ const material = new THREE.ShaderMaterial({
       else if (uPalette > 2.5) horizon = vec3(0.92, 0.53, 0.23);
       else if (uPalette > 1.5) horizon = vec3(0.16, 0.24, 0.39);
       else if (uPalette > 0.5) horizon = vec3(0.43, 0.43, 0.44);
+      horizon *= mix(vec3(1.0), vec3(0.50, 0.65, 0.77), storm);
       gl_FragColor = vec4(mix(base, horizon, haze), 1.0);
     }
   `,
@@ -196,7 +210,7 @@ water.frustumCulled = false;
 scene.add(water);
 
 const sky = new THREE.Mesh(new THREE.SphereGeometry(1600, 48, 24), new THREE.ShaderMaterial({
-  uniforms: { uPalette: uniforms.uPalette, uTime: uniforms.uTime },
+  uniforms: { uPalette: uniforms.uPalette, uTime: uniforms.uTime, uWaveLevel: uniforms.uWaveLevel },
   side: THREE.BackSide,
   depthWrite: false,
   depthTest: false,
@@ -204,6 +218,7 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(1600, 48, 24), new THREE.Sha
   fragmentShader: `
     precision highp float;
     uniform float uPalette;
+    uniform float uWaveLevel;
     uniform float uTime;
     varying vec3 vDir;
     float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -223,6 +238,8 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(1600, 48, 24), new THREE.Sha
       else if (uPalette > 0.5) { horizon = vec3(0.43, 0.43, 0.44); zenith = vec3(0.19, 0.18, 0.25); }
       // A bright, continuous band of summer haze sits just above the blue sea.
       vec3 color = mix(horizon, zenith, smoothstep(0.0, uPalette > 3.5 ? 0.34 : 0.88, alt));
+      float storm = max(0.0, (uWaveLevel - 3.0) * 0.5);
+      color = mix(color, mix(vec3(0.24, 0.31, 0.37), vec3(0.13, 0.19, 0.27), smoothstep(0.0, 0.8, alt)), storm * 0.91);
       gl_FragColor = vec4(color, 1.0);
     }
   `,
@@ -231,6 +248,8 @@ sky.renderOrder = -10;
 scene.add(sky);
 const clouds = createClouds();
 scene.add(clouds.mesh);
+const rain = createRain();
+scene.add(rain.mesh);
 
 const ambient = new THREE.HemisphereLight(0xdce9f0, 0x263843, 2.2);
 scene.add(ambient);
@@ -261,7 +280,23 @@ const throttleValue = document.querySelector('#throttle-value');
 const speedDisplay = document.querySelector('#speed');
 const headingDisplay = document.querySelector('#heading');
 const held = new Set();
-const state = { x: 0, z: 0, heading: 0, speed: 0, throttle: 0 };
+const MAX_SPEED = 36;
+const state = { x: 0, z: 0, heading: 0, speed: 0, throttle: 0, waveLevel: 3 };
+document.querySelectorAll('[data-wave]').forEach(button => button.addEventListener('click', () => {
+  const level = Number(button.dataset.wave);
+  state.waveLevel = level;
+  uniforms.uWaveLevel.value = level;
+  clouds.setStorm(level);
+  rain.setLevel(level);
+  const storm = Math.max(0, (level - 3) / 2);
+  sunlight.intensity = 2.2 * (1 - storm * 0.57);
+  ambient.intensity = 2.2 * (1 - storm * 0.44);
+  document.querySelectorAll('[data-wave]').forEach(choice => {
+    const active = choice === button;
+    choice.classList.toggle('active', active);
+    choice.setAttribute('aria-pressed', String(active));
+  });
+}));
 const setThrottle = value => {
   state.throttle = Math.max(0, Math.min(1, value));
   throttle.value = String(Math.round(state.throttle * 100));
@@ -293,23 +328,29 @@ for (const side of ['left', 'right']) {
 }
 function sampleWave(x, z, t) {
   const y = -z;
-  return 0.43 * Math.sin(y * 0.54 + x * 0.17 + t * 0.48)
+  const base = 0.43 * Math.sin(y * 0.54 + x * 0.17 + t * 0.48)
     + 0.29 * Math.sin(y * 0.81 - x * 0.37 - t * 0.72)
     + 0.19 * Math.sin(y * 1.48 + x * 0.41 + t * 0.92)
-    + 0.10 * Math.sin(y * 3.1 - x * 1.6 - t * 1.52);
+    + 0.10 * Math.sin(y * 3.1 - x * 1.6 - t * 1.52)
+    + 0.04 * Math.sin(x * 5.4 + y * 4.5 + t * 2.3);
+  const level = state.waveLevel;
+  const amplitude = level < 3 ? 0.10 + (level - 1) * 0.45 : 1 + (level - 3) * 0.625;
+  const storm = Math.max(0, (level - 3) / 2);
+  return amplitude * base + storm * (0.82 * Math.sin(y * 0.23 - x * 0.13 + t * 0.60)
+    + 0.48 * Math.sin(y * 0.34 + x * 0.25 - t * 0.76));
 }
 function moveBoat(dt) {
   if (held.has('up')) setThrottle(state.throttle + dt * 0.36);
   if (held.has('down')) setThrottle(state.throttle - dt * 0.47);
-  state.speed += (state.throttle * 18 - state.speed) * (1 - Math.exp(-dt * 0.85));
+  state.speed += (state.throttle * MAX_SPEED - state.speed) * (1 - Math.exp(-dt * 0.85));
   const steer = Number(held.has('right')) - Number(held.has('left'));
-  state.heading -= steer * dt * (0.14 + 0.68 * state.speed / 18);
+  state.heading -= steer * dt * (0.14 + 0.68 * state.speed / MAX_SPEED);
   const forwardX = -Math.sin(state.heading), forwardZ = -Math.cos(state.heading);
   state.x += forwardX * state.speed * dt * 0.5144;
   state.z += forwardZ * state.speed * dt * 0.5144;
   uniforms.uBoatPos.value.set(state.x, state.z);
   uniforms.uForward.value.set(forwardX, forwardZ);
-  uniforms.uSpeed.value = state.speed / 18;
+  uniforms.uSpeed.value = state.speed / MAX_SPEED;
   uniforms.uOceanOffset.value.set(state.x, -state.z);
   water.position.set(state.x, 0, state.z);
   sky.position.set(state.x, 0, state.z);
@@ -362,6 +403,7 @@ function frame(now) {
   uniforms.uTime.value += dt;
   moveBoat(dt);
   controls.update();
+  rain.update(dt, camera);
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
