@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createPlaceholderBoat } from './boat.js';
+import { createClouds } from './clouds.js';
 
 const container = document.querySelector('#scene');
 const error = document.querySelector('#error');
@@ -109,7 +110,10 @@ const material = new THREE.ShaderMaterial({
       float ink = smoothstep(0.39, 0.76, broad * 0.6 + detail * 0.4 + 0.16 * n.x);
       vec3 shadow = mix(vec3(0.016, 0.035, 0.046), vec3(0.085, 0.145, 0.162), ink);
       vec3 warmShadow = mix(vec3(0.068, 0.073, 0.070), vec3(0.25, 0.263, 0.224), ink);
-      vec3 base = mix(shadow, warmShadow, uPalette);
+      vec3 base = shadow;
+      if (uPalette > 2.5) base = mix(vec3(0.083, 0.035, 0.055), vec3(0.35, 0.16, 0.15), ink);
+      else if (uPalette > 1.5) base = mix(vec3(0.009, 0.018, 0.052), vec3(0.052, 0.095, 0.23), ink);
+      else if (uPalette > 0.5) base = warmShadow;
 
       // The glints come from the moving surface normal, then break into short brush marks.
       float reflection = max(dot(reflect(-lightDir, n), viewDir), 0.0);
@@ -119,9 +123,15 @@ const material = new THREE.ShaderMaterial({
       float flash = pow(reflection, 62.0) * smoothstep(0.38, 0.73, detail);
       float glint = clamp(specular * (0.5 + 1.65 * gaps) + flash * 1.6, 0.0, 1.0);
       float facing = pow(1.0 - max(dot(n, viewDir), 0.0), 2.0);
-      vec3 sky = mix(vec3(0.43, 0.57, 0.61), vec3(0.73, 0.70, 0.56), uPalette);
+      vec3 sky = vec3(0.43, 0.57, 0.61);
+      if (uPalette > 2.5) sky = vec3(0.88, 0.46, 0.34);
+      else if (uPalette > 1.5) sky = vec3(0.27, 0.39, 0.63);
+      else if (uPalette > 0.5) sky = vec3(0.73, 0.70, 0.56);
       base = mix(base, sky, facing * 0.42);
-      vec3 white = mix(vec3(0.92, 0.96, 0.93), vec3(1.0, 0.96, 0.80), uPalette);
+      vec3 white = vec3(0.92, 0.96, 0.93);
+      if (uPalette > 2.5) white = vec3(1.0, 0.79, 0.56);
+      else if (uPalette > 1.5) white = vec3(0.80, 0.88, 1.0);
+      else if (uPalette > 0.5) white = vec3(1.0, 0.96, 0.80);
       base = mix(base, white, glint * 0.94);
 
       vec2 rel = vWorld.xz - uBoatPos;
@@ -138,7 +148,10 @@ const material = new THREE.ShaderMaterial({
       // Distance haze softens the far water without turning it into a flat image.
       float distanceToEye = length(uCamera - vWorld);
       float haze = smoothstep(90.0, 1200.0, distanceToEye) * 0.96;
-      vec3 horizon = mix(vec3(0.22, 0.34, 0.43), vec3(0.43, 0.43, 0.44), uPalette);
+      vec3 horizon = vec3(0.22, 0.34, 0.43);
+      if (uPalette > 2.5) horizon = vec3(0.60, 0.33, 0.34);
+      else if (uPalette > 1.5) horizon = vec3(0.16, 0.24, 0.39);
+      else if (uPalette > 0.5) horizon = vec3(0.43, 0.43, 0.44);
       gl_FragColor = vec4(mix(base, horizon, haze), 1.0);
     }
   `,
@@ -192,25 +205,23 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(1600, 48, 24), new THREE.Sha
     void main() {
       vec3 d = normalize(vDir);
       float alt = max(d.y, 0.0);
-      vec3 horizon = mix(vec3(0.22, 0.34, 0.43), vec3(0.43, 0.43, 0.44), uPalette);
-      vec3 zenith = mix(vec3(0.055, 0.085, 0.18), vec3(0.19, 0.18, 0.25), uPalette);
+      vec3 horizon = vec3(0.22, 0.34, 0.43);
+      vec3 zenith = vec3(0.055, 0.085, 0.18);
+      if (uPalette > 2.5) { horizon = vec3(0.60, 0.33, 0.34); zenith = vec3(0.25, 0.12, 0.25); }
+      else if (uPalette > 1.5) { horizon = vec3(0.16, 0.24, 0.39); zenith = vec3(0.030, 0.045, 0.13); }
+      else if (uPalette > 0.5) { horizon = vec3(0.43, 0.43, 0.44); zenith = vec3(0.19, 0.18, 0.25); }
       vec3 color = mix(horizon, zenith, smoothstep(0.0, 0.88, alt));
-      // Use continuous direction components: atan() jumps at -pi/pi and cuts the sky vertically.
-      vec2 cp = d.xz * 4.3 + vec2(d.y * 1.8, d.y * 6.0);
-      float n = noise(cp * 1.7 + vec2(uTime * 0.007, 0.0)) * 0.55;
-      n += noise(cp * 3.4 - vec2(uTime * 0.012, 0.0)) * 0.3;
-      n += noise(cp * 7.0) * 0.15;
-      float cloud = smoothstep(0.43, 0.63, n) * smoothstep(0.015, 0.19, alt);
-      vec3 cloudColor = mix(vec3(0.38, 0.42, 0.52), vec3(0.57, 0.52, 0.55), uPalette);
-      color = mix(color, cloudColor, cloud * 0.58);
       gl_FragColor = vec4(color, 1.0);
     }
   `,
 }));
 sky.renderOrder = -10;
 scene.add(sky);
+const clouds = createClouds();
+scene.add(clouds.mesh);
 
-scene.add(new THREE.HemisphereLight(0xdce9f0, 0x263843, 2.2));
+const ambient = new THREE.HemisphereLight(0xdce9f0, 0x263843, 2.2);
+scene.add(ambient);
 const sunlight = new THREE.DirectionalLight(0xf6e6c6, 2.2);
 sunlight.position.set(-15, 30, 24);
 scene.add(sunlight);
@@ -221,7 +232,11 @@ const palettes = document.querySelectorAll('[data-palette]');
 palettes.forEach(button => button.addEventListener('click', () => {
   const selected = Number(button.dataset.palette);
   uniforms.uPalette.value = selected;
-  scene.background.set(selected ? '#6e6d70' : '#293e48');
+  const sceneColors = ['#293e48', '#6e6d70', '#202e4e', '#99545a'];
+  scene.background.set(sceneColors[selected]);
+  clouds.setPalette(selected);
+  sunlight.color.set(['#f6e6c6', '#f5e5c8', '#b8d4ff', '#ffb57d'][selected]);
+  ambient.color.set(['#dce9f0', '#e8e4d8', '#b6c8ee', '#edb8ab'][selected]);
   palettes.forEach(b => {
     const active = b === button;
     b.classList.toggle('active', active);
@@ -286,6 +301,8 @@ function moveBoat(dt) {
   uniforms.uOceanOffset.value.set(state.x, -state.z);
   water.position.set(state.x, 0, state.z);
   sky.position.set(state.x, 0, state.z);
+  clouds.mesh.position.set(state.x, 0, state.z);
+  clouds.update(dt);
 
   const t = uniforms.uTime.value;
   const center = sampleWave(state.x, state.z, t);
