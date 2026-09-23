@@ -153,7 +153,7 @@ const material = new THREE.ShaderMaterial({
       float distanceToEye = length(uCamera - vWorld);
       float haze = smoothstep(90.0, 1200.0, distanceToEye) * 0.96;
       vec3 horizon = vec3(0.22, 0.34, 0.43);
-      if (uPalette > 3.5) horizon = vec3(0.34, 0.72, 0.91);
+      if (uPalette > 3.5) horizon = vec3(0.13, 0.48, 0.78);
       else if (uPalette > 2.5) horizon = vec3(0.60, 0.33, 0.34);
       else if (uPalette > 1.5) horizon = vec3(0.16, 0.24, 0.39);
       else if (uPalette > 0.5) horizon = vec3(0.43, 0.43, 0.44);
@@ -212,11 +212,12 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(1600, 48, 24), new THREE.Sha
       float alt = max(d.y, 0.0);
       vec3 horizon = vec3(0.22, 0.34, 0.43);
       vec3 zenith = vec3(0.055, 0.085, 0.18);
-      if (uPalette > 3.5) { horizon = vec3(0.34, 0.72, 0.91); zenith = vec3(0.06, 0.39, 0.84); }
+      if (uPalette > 3.5) { horizon = vec3(0.94, 0.98, 1.0); zenith = vec3(0.06, 0.43, 0.88); }
       else if (uPalette > 2.5) { horizon = vec3(0.60, 0.33, 0.34); zenith = vec3(0.25, 0.12, 0.25); }
       else if (uPalette > 1.5) { horizon = vec3(0.16, 0.24, 0.39); zenith = vec3(0.030, 0.045, 0.13); }
       else if (uPalette > 0.5) { horizon = vec3(0.43, 0.43, 0.44); zenith = vec3(0.19, 0.18, 0.25); }
-      vec3 color = mix(horizon, zenith, smoothstep(0.0, 0.88, alt));
+      // A bright, continuous band of summer haze sits just above the blue sea.
+      vec3 color = mix(horizon, zenith, smoothstep(0.0, uPalette > 3.5 ? 0.34 : 0.88, alt));
       gl_FragColor = vec4(color, 1.0);
     }
   `,
