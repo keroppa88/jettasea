@@ -30,7 +30,7 @@ export function createClouds() {
     uWarp: { value: 0 }, uDetail: { value: 0 },
     uProj: { value: 0 }, uMinY: { value: 0 },
     uBand: { value: 0 }, uShadow: { value: 0 },
-    uOpacity: { value: 0 }, uDarken: { value: 1 }, uSummer: { value: 0 },
+    uOpacity: { value: 0 }, uDarken: { value: 1 }, uSummer: { value: 0 }, uStorm: { value: 0 },
     uSkyColor: { value: new THREE.Vector3() },
     uSkyHor: { value: new THREE.Vector3() },
   };
@@ -39,7 +39,7 @@ export function createClouds() {
     vertexShader: 'varying vec3 vDir; void main(){ vDir=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
     fragmentShader: `
       precision highp float;
-      uniform float uFlow,uDrift,uCov,uSoft,uScale,uStretch,uWarp,uDetail,uProj,uMinY,uBand,uShadow,uOpacity,uDarken,uSummer;
+      uniform float uFlow,uDrift,uCov,uSoft,uScale,uStretch,uWarp,uDetail,uProj,uMinY,uBand,uShadow,uOpacity,uDarken,uSummer,uStorm;
       uniform vec3 uSkyColor,uSkyHor;
       varying vec3 vDir;
       float hash(vec2 p){ p=fract(p*vec2(123.34,345.45)); p+=dot(p,p+34.345); return fract(p.x*p.y); }
@@ -78,6 +78,7 @@ export function createClouds() {
           if(alpha<0.003) discard;
           vec3 shade=mix(vec3(0.70,0.83,0.91),vec3(1.0,1.0,0.98),smoothstep(0.035,0.25,dir.y));
           shade*=0.91+0.09*texture;
+          shade*=mix(vec3(1.0),vec3(0.39,0.48,0.55),uStorm*0.9);
           gl_FragColor=vec4(shade,alpha);
           return;
         }
@@ -100,6 +101,7 @@ export function createClouds() {
         vec3 col=mix(darkCol,litCol,lit);
         float alpha=dens*uOpacity;
         if(alpha<0.003) discard;
+        col*=mix(vec3(1.0),vec3(0.44,0.51,0.57),uStorm*0.9);
         gl_FragColor=vec4(col*uDarken,alpha);
       }
     `,
@@ -130,6 +132,9 @@ export function createClouds() {
     uniforms.uFlow.value += dt * config.flow;
     uniforms.uDrift.value += dt * config.drift;
   }
+  function setStorm(level) {
+    uniforms.uStorm.value = Math.max(0, (level - 3) / 2);
+  }
   setPalette(0);
-  return { mesh, setPalette, update };
+  return { mesh, setPalette, setStorm, update };
 }
