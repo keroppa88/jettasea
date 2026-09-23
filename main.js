@@ -195,7 +195,8 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(1600, 48, 24), new THREE.Sha
       vec3 horizon = mix(vec3(0.22, 0.34, 0.43), vec3(0.43, 0.43, 0.44), uPalette);
       vec3 zenith = mix(vec3(0.055, 0.085, 0.18), vec3(0.19, 0.18, 0.25), uPalette);
       vec3 color = mix(horizon, zenith, smoothstep(0.0, 0.88, alt));
-      vec2 cp = vec2(atan(d.z, d.x) * 2.6, d.y * 7.5);
+      // Use continuous direction components: atan() jumps at -pi/pi and cuts the sky vertically.
+      vec2 cp = d.xz * 4.3 + vec2(d.y * 1.8, d.y * 6.0);
       float n = noise(cp * 1.7 + vec2(uTime * 0.007, 0.0)) * 0.55;
       n += noise(cp * 3.4 - vec2(uTime * 0.012, 0.0)) * 0.3;
       n += noise(cp * 7.0) * 0.15;
