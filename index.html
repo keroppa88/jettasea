@@ -4,31 +4,35 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#111b21">
-  <title>Zorn Water Study — 3Dの水面</title>
+  <title>Zorn Sea — マグロ漁船で航海する水面</title>
   <link rel="stylesheet" href="style.css">
   <script type="importmap">
     {"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
   </script>
 </head>
 <body>
-  <main id="app" aria-label="ドラッグして角度を変えられる3D水面">
+  <main id="app" aria-label="操船して移動できる3Dの海">
     <div id="scene"></div>
-    <div class="topline"><span class="mark">WATER / 01</span><span class="index">ZORN WATER STUDY</span></div>
+    <div class="topline"><span class="mark">ZORN SEA / 01</span><span class="index">TUNA FISHING VESSEL</span></div>
     <section class="intro" aria-label="作品説明">
-      <p class="eyebrow">AN INTERACTIVE WATER STUDY</p>
-      <h1>光をすくう、<br>水の表面。</h1>
-      <p class="description">Anders Leonard Zorn の水面に着想を得た、動く光と波のスケッチ。</p>
+      <p class="eyebrow">AN INTERACTIVE VOYAGE</p>
+      <h1>波を越えて、<br>光の向こうへ。</h1>
+      <p class="description">マグロ漁船を操り、Zorn の絵に着想を得た海を進む。</p>
     </section>
+    <div class="helm" aria-label="操船パネル">
+      <div class="readout"><span>速度 <strong id="speed">00.0</strong> <small>kn</small></span><span>針路 <strong id="heading">000</strong><small>°</small></span></div>
+      <div class="drive"><button type="button" id="left" aria-label="左に舵を切る">↶<small>左</small></button><div class="throttle"><label for="throttle">スロットル <span id="throttle-value">0%</span></label><input id="throttle" type="range" min="0" max="100" value="0" aria-label="スロットル"></div><button type="button" id="right" aria-label="右に舵を切る">↷<small>右</small></button></div>
+      <p class="keyguide">W / ↑ 加速　S / ↓ 減速　A D / ← → 操舵</p>
+    </div>
     <div class="toolbar" aria-label="水面の設定">
       <div class="swatches" role="group" aria-label="水面の色調">
         <button type="button" class="swatch active" data-palette="0" aria-pressed="true"><i class="dot blue"></i> 青い夕景</button>
         <button type="button" class="swatch" data-palette="1" aria-pressed="false"><i class="dot gold"></i> 港の薄明</button>
       </div>
       <div class="divider" aria-hidden="true"></div>
-      <button type="button" id="motion" class="text-button" aria-pressed="true">波を止める <span aria-hidden="true">Ⅱ</span></button>
-      <button type="button" id="reset" class="text-button">視点を戻す <span aria-hidden="true">↗</span></button>
+      <button type="button" id="reset" class="text-button">船尾から見る <span aria-hidden="true">↗</span></button>
     </div>
-    <p class="hint"><span class="desktop-hint">ドラッグで視点変更 · スクロールで近づく</span><span class="touch-hint">指で回転 · 2本指で拡大</span></p>
+    <p class="hint"><span class="desktop-hint">ドラッグで視点変更 · ホイールで拡大</span><span class="touch-hint">指で視点変更 · 2本指で拡大</span></p>
     <div id="error" role="alert" hidden>この環境では WebGL を利用できないため、3Dの水面を表示できません。</div>
   </main>
   <script type="module" src="main.js"></script>
