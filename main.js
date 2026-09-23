@@ -111,7 +111,8 @@ const material = new THREE.ShaderMaterial({
       vec3 shadow = mix(vec3(0.016, 0.035, 0.046), vec3(0.085, 0.145, 0.162), ink);
       vec3 warmShadow = mix(vec3(0.068, 0.073, 0.070), vec3(0.25, 0.263, 0.224), ink);
       vec3 base = shadow;
-      if (uPalette > 2.5) base = mix(vec3(0.083, 0.035, 0.055), vec3(0.35, 0.16, 0.15), ink);
+      if (uPalette > 3.5) base = mix(vec3(0.025, 0.17, 0.29), vec3(0.08, 0.42, 0.62), ink);
+      else if (uPalette > 2.5) base = mix(vec3(0.083, 0.035, 0.055), vec3(0.35, 0.16, 0.15), ink);
       else if (uPalette > 1.5) base = mix(vec3(0.009, 0.018, 0.052), vec3(0.052, 0.095, 0.23), ink);
       else if (uPalette > 0.5) base = warmShadow;
 
@@ -124,12 +125,14 @@ const material = new THREE.ShaderMaterial({
       float glint = clamp(specular * (0.5 + 1.65 * gaps) + flash * 1.6, 0.0, 1.0);
       float facing = pow(1.0 - max(dot(n, viewDir), 0.0), 2.0);
       vec3 sky = vec3(0.43, 0.57, 0.61);
-      if (uPalette > 2.5) sky = vec3(0.88, 0.46, 0.34);
+      if (uPalette > 3.5) sky = vec3(0.51, 0.82, 0.96);
+      else if (uPalette > 2.5) sky = vec3(0.88, 0.46, 0.34);
       else if (uPalette > 1.5) sky = vec3(0.27, 0.39, 0.63);
       else if (uPalette > 0.5) sky = vec3(0.73, 0.70, 0.56);
       base = mix(base, sky, facing * 0.42);
       vec3 white = vec3(0.92, 0.96, 0.93);
-      if (uPalette > 2.5) white = vec3(1.0, 0.79, 0.56);
+      if (uPalette > 3.5) white = vec3(0.98, 1.0, 1.0);
+      else if (uPalette > 2.5) white = vec3(1.0, 0.79, 0.56);
       else if (uPalette > 1.5) white = vec3(0.80, 0.88, 1.0);
       else if (uPalette > 0.5) white = vec3(1.0, 0.96, 0.80);
       base = mix(base, white, glint * 0.94);
@@ -149,7 +152,8 @@ const material = new THREE.ShaderMaterial({
       float distanceToEye = length(uCamera - vWorld);
       float haze = smoothstep(90.0, 1200.0, distanceToEye) * 0.96;
       vec3 horizon = vec3(0.22, 0.34, 0.43);
-      if (uPalette > 2.5) horizon = vec3(0.60, 0.33, 0.34);
+      if (uPalette > 3.5) horizon = vec3(0.34, 0.72, 0.91);
+      else if (uPalette > 2.5) horizon = vec3(0.60, 0.33, 0.34);
       else if (uPalette > 1.5) horizon = vec3(0.16, 0.24, 0.39);
       else if (uPalette > 0.5) horizon = vec3(0.43, 0.43, 0.44);
       gl_FragColor = vec4(mix(base, horizon, haze), 1.0);
@@ -207,7 +211,8 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(1600, 48, 24), new THREE.Sha
       float alt = max(d.y, 0.0);
       vec3 horizon = vec3(0.22, 0.34, 0.43);
       vec3 zenith = vec3(0.055, 0.085, 0.18);
-      if (uPalette > 2.5) { horizon = vec3(0.60, 0.33, 0.34); zenith = vec3(0.25, 0.12, 0.25); }
+      if (uPalette > 3.5) { horizon = vec3(0.34, 0.72, 0.91); zenith = vec3(0.06, 0.39, 0.84); }
+      else if (uPalette > 2.5) { horizon = vec3(0.60, 0.33, 0.34); zenith = vec3(0.25, 0.12, 0.25); }
       else if (uPalette > 1.5) { horizon = vec3(0.16, 0.24, 0.39); zenith = vec3(0.030, 0.045, 0.13); }
       else if (uPalette > 0.5) { horizon = vec3(0.43, 0.43, 0.44); zenith = vec3(0.19, 0.18, 0.25); }
       vec3 color = mix(horizon, zenith, smoothstep(0.0, 0.88, alt));
@@ -232,11 +237,11 @@ const palettes = document.querySelectorAll('[data-palette]');
 palettes.forEach(button => button.addEventListener('click', () => {
   const selected = Number(button.dataset.palette);
   uniforms.uPalette.value = selected;
-  const sceneColors = ['#293e48', '#6e6d70', '#202e4e', '#99545a'];
+  const sceneColors = ['#293e48', '#6e6d70', '#202e4e', '#99545a', '#2e85d6'];
   scene.background.set(sceneColors[selected]);
   clouds.setPalette(selected);
-  sunlight.color.set(['#f6e6c6', '#f5e5c8', '#b8d4ff', '#ffb57d'][selected]);
-  ambient.color.set(['#dce9f0', '#e8e4d8', '#b6c8ee', '#edb8ab'][selected]);
+  sunlight.color.set(['#f6e6c6', '#f5e5c8', '#b8d4ff', '#ffb57d', '#fff4da'][selected]);
+  ambient.color.set(['#dce9f0', '#e8e4d8', '#b6c8ee', '#edb8ab', '#e0f4ff'][selected]);
   palettes.forEach(b => {
     const active = b === button;
     b.classList.toggle('active', active);
