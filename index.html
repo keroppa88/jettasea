@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111b21">
+  <title>Zorn Water Study — 3Dの水面</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <main id="app" aria-label="ドラッグして角度を変えられる3D水面">
+    <div id="scene"></div>
+    <div class="topline"><span class="mark">WATER / 01</span><span class="index">ZORN WATER STUDY</span></div>
+    <section class="intro" aria-label="作品説明">
+      <p class="eyebrow">AN INTERACTIVE WATER STUDY</p>
+      <h1>光をすくう、<br>水の表面。</h1>
+      <p class="description">Anders Leonard Zorn の水面に着想を得た、動く光と波のスケッチ。</p>
+    </section>
+    <div class="toolbar" aria-label="水面の設定">
+      <div class="swatches" role="group" aria-label="水面の色調">
+        <button type="button" class="swatch active" data-palette="0" aria-pressed="true"><i class="dot blue"></i> 青い夕景</button>
+        <button type="button" class="swatch" data-palette="1" aria-pressed="false"><i class="dot gold"></i> 港の薄明</button>
+      </div>
+      <div class="divider" aria-hidden="true"></div>
+      <button type="button" id="motion" class="text-button" aria-pressed="true">波を止める <span aria-hidden="true">Ⅱ</span></button>
+      <button type="button" id="reset" class="text-button">視点を戻す <span aria-hidden="true">↗</span></button>
+    </div>
+    <p class="hint"><span class="desktop-hint">ドラッグで視点変更 · スクロールで近づく</span><span class="touch-hint">指で回転 · 2本指で拡大</span></p>
+    <div id="error" role="alert" hidden>3D表示を開始できませんでした。WebGL対応ブラウザで開いてください。</div>
+  </main>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
