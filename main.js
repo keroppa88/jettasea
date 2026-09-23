@@ -107,29 +107,30 @@ const material = new THREE.ShaderMaterial({
 
       float broad = noise2(p * 0.27 + vec2(uTime * 0.035, 0.0));
       float detail = noise2(p * 1.65 + vec2(uTime * 0.1));
-      float ink = smoothstep(0.39, 0.76, broad * 0.6 + detail * 0.4 + 0.16 * n.x);
+      float summer = step(3.5, uPalette);
+      float ink = smoothstep(mix(0.39, 0.26, summer), mix(0.76, 0.66, summer), broad * 0.6 + detail * 0.4 + 0.16 * n.x);
       vec3 shadow = mix(vec3(0.016, 0.035, 0.046), vec3(0.085, 0.145, 0.162), ink);
       vec3 warmShadow = mix(vec3(0.068, 0.073, 0.070), vec3(0.25, 0.263, 0.224), ink);
       vec3 base = shadow;
-      if (uPalette > 3.5) base = mix(vec3(0.025, 0.17, 0.29), vec3(0.08, 0.42, 0.62), ink);
+      if (uPalette > 3.5) base = mix(vec3(0.018, 0.27, 0.49), vec3(0.075, 0.62, 0.88), ink);
       else if (uPalette > 2.5) base = mix(vec3(0.083, 0.035, 0.055), vec3(0.35, 0.16, 0.15), ink);
       else if (uPalette > 1.5) base = mix(vec3(0.009, 0.018, 0.052), vec3(0.052, 0.095, 0.23), ink);
       else if (uPalette > 0.5) base = warmShadow;
 
       // The glints come from the moving surface normal, then break into short brush marks.
       float reflection = max(dot(reflect(-lightDir, n), viewDir), 0.0);
-      float specular = pow(reflection, 26.0);
+      float specular = pow(reflection, mix(26.0, 13.0, summer));
       float streak = noise2(p * vec2(0.47, 3.4) + vec2(0.0, uTime * 0.17));
       float gaps = smoothstep(0.34, 0.68, streak);
       float flash = pow(reflection, 62.0) * smoothstep(0.38, 0.73, detail);
-      float glint = clamp(specular * (0.5 + 1.65 * gaps) + flash * 1.6, 0.0, 1.0);
+      float glint = clamp(specular * (0.5 + 1.65 * gaps) * mix(1.0, 1.55, summer) + flash * 1.6, 0.0, 1.0);
       float facing = pow(1.0 - max(dot(n, viewDir), 0.0), 2.0);
       vec3 sky = vec3(0.43, 0.57, 0.61);
-      if (uPalette > 3.5) sky = vec3(0.51, 0.82, 0.96);
+      if (uPalette > 3.5) sky = vec3(0.35, 0.78, 0.98);
       else if (uPalette > 2.5) sky = vec3(0.88, 0.46, 0.34);
       else if (uPalette > 1.5) sky = vec3(0.27, 0.39, 0.63);
       else if (uPalette > 0.5) sky = vec3(0.73, 0.70, 0.56);
-      base = mix(base, sky, facing * 0.42);
+      base = mix(base, sky, facing * mix(0.42, 0.55, summer));
       vec3 white = vec3(0.92, 0.96, 0.93);
       if (uPalette > 3.5) white = vec3(0.98, 1.0, 1.0);
       else if (uPalette > 2.5) white = vec3(1.0, 0.79, 0.56);
