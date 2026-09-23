@@ -19,7 +19,7 @@ const SKY = [
   [[0.19, 0.18, 0.25], [0.43, 0.43, 0.44]],
   [[0.030, 0.045, 0.13], [0.16, 0.24, 0.39]],
   [[0.25, 0.12, 0.25], [0.60, 0.33, 0.34]],
-  [[0.06, 0.39, 0.84], [0.34, 0.72, 0.91]],
+  [[0.06, 0.43, 0.88], [0.94, 0.98, 1.0]],
 ];
 
 export function createClouds() {
@@ -30,7 +30,7 @@ export function createClouds() {
     uWarp: { value: 0 }, uDetail: { value: 0 },
     uProj: { value: 0 }, uMinY: { value: 0 },
     uBand: { value: 0 }, uShadow: { value: 0 },
-    uOpacity: { value: 0 }, uDarken: { value: 1 },
+    uOpacity: { value: 0 }, uDarken: { value: 1 }, uSummer: { value: 0 },
     uSkyColor: { value: new THREE.Vector3() },
     uSkyHor: { value: new THREE.Vector3() },
   };
@@ -39,7 +39,7 @@ export function createClouds() {
     vertexShader: 'varying vec3 vDir; void main(){ vDir=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
     fragmentShader: `
       precision highp float;
-      uniform float uFlow,uDrift,uCov,uSoft,uScale,uStretch,uWarp,uDetail,uProj,uMinY,uBand,uShadow,uOpacity,uDarken;
+      uniform float uFlow,uDrift,uCov,uSoft,uScale,uStretch,uWarp,uDetail,uProj,uMinY,uBand,uShadow,uOpacity,uDarken,uSummer;
       uniform vec3 uSkyColor,uSkyHor;
       varying vec3 vDir;
       float hash(vec2 p){ p=fract(p*vec2(123.34,345.45)); p+=dot(p,p+34.345); return fract(p.x*p.y); }
@@ -54,9 +54,33 @@ export function createClouds() {
         for(int i=0;i<6;i++){ v+=a*noise(p); p=p*2.02+vec2(1.7,9.2); a*=0.5; }
         return v;
       }
+      // Cumulus towers are positioned by compass direction, so they wrap around the sky.
+      float cumulus(vec3 dir, vec2 bearing, float width, float height, float seed){
+        vec2 horizontal=normalize(dir.xz);
+        float x=dot(horizontal,vec2(-bearing.y,bearing.x))/width;
+        float facing=smoothstep(0.55,0.85,dot(horizontal,bearing));
+        float billow=fbm(vec2(x*3.8+seed,dir.y*10.0+uFlow*0.12));
+        float crown=height*(0.44+0.56*exp(-x*x*0.68))+(billow-0.5)*0.10;
+        float shape=smoothstep(0.02,0.055,dir.y)*(1.0-smoothstep(crown-0.018,crown+0.018,dir.y));
+        return shape*(1.0-smoothstep(0.85,1.50,abs(x)))*facing;
+      }
       void main(){
         vec3 dir=normalize(vDir);
         if(dir.y<=0.01) discard;
+        if(uSummer>0.5){
+          float towers=0.0;
+          towers=max(towers,cumulus(dir,normalize(vec2(0.40,-0.92)),0.23,0.39,1.2));
+          towers=max(towers,cumulus(dir,normalize(vec2(-0.76,-0.65)),0.19,0.31,4.7));
+          towers=max(towers,cumulus(dir,normalize(vec2(0.92,0.39)),0.26,0.36,8.3));
+          towers=max(towers,cumulus(dir,normalize(vec2(-0.34,0.94)),0.16,0.27,12.6));
+          float texture=fbm(dir.xz*19.0+vec2(dir.y*7.0,uFlow*0.09));
+          float alpha=towers*(0.83+0.13*texture);
+          if(alpha<0.003) discard;
+          vec3 shade=mix(vec3(0.70,0.83,0.91),vec3(1.0,1.0,0.98),smoothstep(0.035,0.25,dir.y));
+          shade*=0.91+0.09*texture;
+          gl_FragColor=vec4(shade,alpha);
+          return;
+        }
         // This projection uses the continuous 3D direction, with no longitude seam.
         vec2 p=dir.xz/max(dir.y,uProj);
         p*=uScale; p.x*=uStretch;
@@ -90,6 +114,7 @@ export function createClouds() {
 
   let mode = 0;
   function setPalette(index) {
+    uniforms.uSummer.value = index === 4 ? 1 : 0;
     mode = index === 1 || index === 3 ? 1 : 0;
     const config = CLOUD_CONFIGS[mode];
     for (const key of ['cov', 'soft', 'scale', 'stretch', 'warp', 'detail', 'proj', 'minY', 'band', 'shadow', 'opacity']) {
