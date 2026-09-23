@@ -18,7 +18,7 @@ const SKY = [
   [[0.055, 0.085, 0.18], [0.22, 0.34, 0.43]],
   [[0.19, 0.18, 0.25], [0.43, 0.43, 0.44]],
   [[0.030, 0.045, 0.13], [0.16, 0.24, 0.39]],
-  [[0.25, 0.12, 0.25], [0.60, 0.33, 0.34]],
+  [[0.44, 0.21, 0.29], [1.0, 0.74, 0.38]],
   [[0.35, 0.63, 0.85], [0.94, 0.98, 1.0]],
 ];
 
@@ -121,7 +121,7 @@ export function createClouds() {
       const uniform = 'u' + key[0].toUpperCase() + key.slice(1);
       uniforms[uniform].value = config[key];
     }
-    uniforms.uDarken.value = index === 2 ? 0.55 : index === 3 ? 0.78 : index === 4 ? 1.0 : 0.90;
+    uniforms.uDarken.value = index === 2 ? 0.55 : index === 3 ? 0.94 : index === 4 ? 1.0 : 0.90;
     uniforms.uSkyColor.value.set(...SKY[index][0]);
     uniforms.uSkyHor.value.set(...SKY[index][1]);
   }
