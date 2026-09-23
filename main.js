@@ -277,8 +277,8 @@ function moveBoat(dt) {
   const steer = Number(held.has('right')) - Number(held.has('left'));
   state.heading += steer * dt * (0.14 + 0.68 * state.speed / 18);
   const forwardX = -Math.sin(state.heading), forwardZ = -Math.cos(state.heading);
-  state.x += forwardX * state.speed * dt * 0.65;
-  state.z += forwardZ * state.speed * dt * 0.65;
+  state.x += forwardX * state.speed * dt * 0.5144;
+  state.z += forwardZ * state.speed * dt * 0.5144;
   uniforms.uBoatPos.value.set(state.x, state.z);
   uniforms.uForward.value.set(forwardX, forwardZ);
   uniforms.uSpeed.value = state.speed / 18;
