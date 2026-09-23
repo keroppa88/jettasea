@@ -22,6 +22,7 @@
     <div class="helm" aria-label="操船パネル">
       <div class="readout"><span>速度 <strong id="speed">00.0</strong> <small>kn</small></span><span>針路 <strong id="heading">000</strong><small>°</small></span></div>
       <div class="drive"><button type="button" id="left" aria-label="左に舵を切る">↶<small>左</small></button><div class="throttle"><label for="throttle">スロットル <span id="throttle-value">0%</span></label><input id="throttle" type="range" min="0" max="100" value="0" aria-label="スロットル"></div><button type="button" id="right" aria-label="右に舵を切る">↷<small>右</small></button></div>
+      <div class="sea-state"><span>波の強さ</span><div class="wave-choices" role="group" aria-label="波の強さ"><button type="button" data-wave="1" aria-pressed="false" title="凪">1</button><button type="button" data-wave="2" aria-pressed="false" title="穏やか">2</button><button type="button" data-wave="3" class="active" aria-pressed="true" title="標準">3</button><button type="button" data-wave="4" aria-pressed="false" title="荒波と雨">4</button><button type="button" data-wave="5" aria-pressed="false" title="暴風雨">5</button></div></div>
       <p class="keyguide">W / ↑ 加速　S / ↓ 減速　A D / ← → 操舵</p>
     </div>
     <div class="toolbar" aria-label="水面の設定">
