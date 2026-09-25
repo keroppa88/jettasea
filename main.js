@@ -43,7 +43,7 @@ const uniforms = {
   uSpeed: { value: 0 },
   uWaveLevel: { value: 3 },
   // Low evening sun for the 茜の夕映え palette, just above the horizon ahead and to the left.
-  uSunDir: { value: new THREE.Vector3(-0.38, 0.03, -0.92).normalize() },
+  uSunDir: { value: new THREE.Vector3(-0.38, -0.004, -0.92).normalize() },
 };
 
 const sharedWaves = /* glsl */ `
@@ -253,12 +253,13 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(1600, 48, 24), new THREE.Sha
       float storm = max(0.0, (uWaveLevel - 3.0) * 0.5);
       color = mix(color, mix(vec3(0.24, 0.31, 0.37), vec3(0.13, 0.19, 0.27), smoothstep(0.0, 0.8, alt)), storm * 0.91);
       if (uPalette > 2.5 && uPalette < 3.5) {
-        // Setting sun: soft disc with a warm halo, fading out in stormy weather.
+        // Setting sun, half below the sea: only a bright glow, no visible disc edge.
         float s = max(dot(d, uSunDir), 0.0);
         float clear = 1.0 - storm;
-        color += vec3(1.0, 0.50, 0.22) * (pow(s, 6.0) * 0.18 + pow(s, 80.0) * 0.35) * clear;
-        float disc = smoothstep(0.99935, 0.99965, s);
-        color = mix(color, vec3(1.0, 0.90, 0.66), disc * 0.92 * clear);
+        vec2 flatD = normalize(d.xz), flatSun = normalize(uSunDir.xz);
+        float band = pow(max(dot(flatD, flatSun), 0.0), 40.0) * exp(-alt * 30.0);
+        color += vec3(1.0, 0.50, 0.22) * (pow(s, 6.0) * 0.18 + pow(s, 120.0) * 0.40 + band * 0.30) * clear;
+        color += vec3(1.0, 0.86, 0.60) * (pow(s, 900.0) * 0.9 + pow(s, 4000.0) * 1.2) * clear;
       }
       gl_FragColor = vec4(color, 1.0);
     }
