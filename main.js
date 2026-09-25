@@ -62,17 +62,21 @@ const sharedWaves = /* glsl */ `
     float bend = (noise2(p * 0.13 + vec2(t * 0.04, 0.0)) - 0.5) * 1.5;
     p.x += bend;
     float h = 0.0;
-    float amplitude = uWaveLevel < 3.0 ? mix(0.10, 1.0, (uWaveLevel - 1.0) * 0.5) : mix(1.0, 2.25, (uWaveLevel - 3.0) * 0.5);
-    h += amplitude * (
-      0.43 * sin(p.y * 0.54 + p.x * 0.17 + t * 0.48)
-      + 0.29 * sin(p.y * 0.81 - p.x * 0.37 - t * 0.72)
-      + 0.19 * sin(p.y * 1.48 + p.x * 0.41 + t * 0.92)
-      + 0.10 * sin(p.y * 3.1 - p.x * 1.6 - t * 1.52)
+    float calm = uWaveLevel < 3.0 ? mix(0.10, 1.0, (uWaveLevel - 1.0) * 0.5) : 1.0;
+    // Levels 4-5 stretch the swell itself (longer, taller, slower waves) instead of piling up chop.
+    float swell = max(0.0, (uWaveLevel - 3.0) * 0.5);
+    float stretch = 1.0 + swell * 0.8 + swell * swell * 1.2;
+    vec2 q = p / stretch;
+    float ts = t / sqrt(stretch);
+    h += calm * (1.0 + swell * 2.0) * (
+      0.43 * sin(q.y * 0.54 + q.x * 0.17 + ts * 0.48)
+      + 0.29 * sin(q.y * 0.81 - q.x * 0.37 - ts * 0.72)
+      + 0.19 * sin(q.y * 1.48 + q.x * 0.41 + ts * 0.92)
+    );
+    h += calm * (
+      0.10 * sin(p.y * 3.1 - p.x * 1.6 - t * 1.52)
       + 0.04 * sin(p.x * 5.4 + p.y * 4.5 + t * 2.3)
     );
-    float storm = max(0.0, (uWaveLevel - 3.0) * 0.5);
-    h += storm * (0.82 * sin(p.y * 0.23 - p.x * 0.13 + t * 0.60)
-      + 0.48 * sin(p.y * 0.34 + p.x * 0.25 - t * 0.76));
     vec2 rel = vec2(p.x, -p.y) - uBoatPos;
     float aft = -dot(rel, uForward);
     float side = dot(rel, vec2(-uForward.y, uForward.x));
@@ -328,16 +332,16 @@ for (const side of ['left', 'right']) {
 }
 function sampleWave(x, z, t) {
   const y = -z;
-  const base = 0.43 * Math.sin(y * 0.54 + x * 0.17 + t * 0.48)
-    + 0.29 * Math.sin(y * 0.81 - x * 0.37 - t * 0.72)
-    + 0.19 * Math.sin(y * 1.48 + x * 0.41 + t * 0.92)
-    + 0.10 * Math.sin(y * 3.1 - x * 1.6 - t * 1.52)
-    + 0.04 * Math.sin(x * 5.4 + y * 4.5 + t * 2.3);
   const level = state.waveLevel;
-  const amplitude = level < 3 ? 0.10 + (level - 1) * 0.45 : 1 + (level - 3) * 0.625;
-  const storm = Math.max(0, (level - 3) / 2);
-  return amplitude * base + storm * (0.82 * Math.sin(y * 0.23 - x * 0.13 + t * 0.60)
-    + 0.48 * Math.sin(y * 0.34 + x * 0.25 - t * 0.76));
+  const calm = level < 3 ? 0.10 + (level - 1) * 0.45 : 1;
+  const swell = Math.max(0, (level - 3) / 2);
+  const stretch = 1 + swell * 0.8 + swell * swell * 1.2;
+  const qx = x / stretch, qy = y / stretch, ts = t / Math.sqrt(stretch);
+  return calm * (1 + swell * 2) * (0.43 * Math.sin(qy * 0.54 + qx * 0.17 + ts * 0.48)
+    + 0.29 * Math.sin(qy * 0.81 - qx * 0.37 - ts * 0.72)
+    + 0.19 * Math.sin(qy * 1.48 + qx * 0.41 + ts * 0.92))
+    + calm * (0.10 * Math.sin(y * 3.1 - x * 1.6 - t * 1.52)
+    + 0.04 * Math.sin(x * 5.4 + y * 4.5 + t * 2.3));
 }
 function moveBoat(dt) {
   if (held.has('up')) setThrottle(state.throttle + dt * 0.36);
