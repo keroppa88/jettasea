@@ -42,6 +42,8 @@ const uniforms = {
   uForward: { value: new THREE.Vector2(0, -1) },
   uSpeed: { value: 0 },
   uWaveLevel: { value: 3 },
+  // Low evening sun for the 茜の夕映え palette, just above the horizon ahead and to the left.
+  uSunDir: { value: new THREE.Vector3(-0.38, 0.03, -0.92).normalize() },
 };
 
 const sharedWaves = /* glsl */ `
@@ -107,6 +109,7 @@ const material = new THREE.ShaderMaterial({
     uniform float uTime;
     uniform float uPalette;
     uniform vec3 uCamera;
+    uniform vec3 uSunDir;
     varying vec3 vWorld;
     ${sharedWaves}
     void main() {
@@ -116,6 +119,7 @@ const material = new THREE.ShaderMaterial({
       float slopeZ = (surface(p - vec2(0.0, e), uTime) - surface(p + vec2(0.0, e), uTime)) / (2.0 * e);
       vec3 n = normalize(vec3(-slopeX, 1.0, -slopeZ));
       vec3 viewDir = normalize(uCamera - vWorld);
+      float evening = step(2.5, uPalette) * (1.0 - step(3.5, uPalette));
       vec3 lightDir = normalize(vec3(-0.42, 0.67, 0.63));
 
       float broad = noise2(p * 0.27 + vec2(uTime * 0.035, 0.0));
@@ -157,6 +161,9 @@ const material = new THREE.ShaderMaterial({
       else if (uPalette > 1.5) white = vec3(0.80, 0.88, 1.0);
       else if (uPalette > 0.5) white = vec3(1.0, 0.96, 0.80);
       base = mix(base, white, glint * mix(0.94, 0.35, storm));
+      // A broad golden path on the water leading toward the low sun.
+      float sunPath = pow(max(dot(reflect(-viewDir, n), uSunDir), 0.0), 40.0);
+      base += vec3(1.0, 0.72, 0.36) * sunPath * gaps * evening * (1.0 - storm) * 0.8;
 
       vec2 rel = vWorld.xz - uBoatPos;
       float aft = -dot(rel, uForward);
@@ -214,7 +221,7 @@ water.frustumCulled = false;
 scene.add(water);
 
 const sky = new THREE.Mesh(new THREE.SphereGeometry(1600, 48, 24), new THREE.ShaderMaterial({
-  uniforms: { uPalette: uniforms.uPalette, uTime: uniforms.uTime, uWaveLevel: uniforms.uWaveLevel },
+  uniforms: { uPalette: uniforms.uPalette, uTime: uniforms.uTime, uWaveLevel: uniforms.uWaveLevel, uSunDir: uniforms.uSunDir },
   side: THREE.BackSide,
   depthWrite: false,
   depthTest: false,
@@ -224,6 +231,7 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(1600, 48, 24), new THREE.Sha
     uniform float uPalette;
     uniform float uWaveLevel;
     uniform float uTime;
+    uniform vec3 uSunDir;
     varying vec3 vDir;
     float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     float noise(vec2 p) {
@@ -244,6 +252,14 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(1600, 48, 24), new THREE.Sha
       vec3 color = mix(horizon, zenith, smoothstep(0.0, uPalette > 3.5 ? 0.34 : 0.88, alt));
       float storm = max(0.0, (uWaveLevel - 3.0) * 0.5);
       color = mix(color, mix(vec3(0.24, 0.31, 0.37), vec3(0.13, 0.19, 0.27), smoothstep(0.0, 0.8, alt)), storm * 0.91);
+      if (uPalette > 2.5 && uPalette < 3.5) {
+        // Setting sun: soft disc with a warm halo, fading out in stormy weather.
+        float s = max(dot(d, uSunDir), 0.0);
+        float clear = 1.0 - storm;
+        color += vec3(1.0, 0.50, 0.22) * (pow(s, 6.0) * 0.18 + pow(s, 80.0) * 0.35) * clear;
+        float disc = smoothstep(0.99935, 0.99965, s);
+        color = mix(color, vec3(1.0, 0.90, 0.66), disc * 0.92 * clear);
+      }
       gl_FragColor = vec4(color, 1.0);
     }
   `,
@@ -270,7 +286,9 @@ palettes.forEach(button => button.addEventListener('click', () => {
   const sceneColors = ['#293e48', '#6e6d70', '#202e4e', '#d68448', '#2e85d6'];
   scene.background.set(sceneColors[selected]);
   clouds.setPalette(selected);
-  sunlight.color.set(['#f6e6c6', '#f5e5c8', '#b8d4ff', '#ffe0a0', '#fff4da'][selected]);
+  sunlight.color.set(['#f6e6c6', '#f5e5c8', '#b8d4ff', '#ffc27a', '#fff4da'][selected]);
+  if (selected === 3) sunlight.position.copy(uniforms.uSunDir.value).multiplyScalar(50);
+  else sunlight.position.set(-15, 30, 24);
   ambient.color.set(['#dce9f0', '#e8e4d8', '#b6c8ee', '#ffd3a0', '#e0f4ff'][selected]);
   palettes.forEach(b => {
     const active = b === button;
