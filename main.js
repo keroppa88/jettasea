@@ -327,6 +327,14 @@ const setThrottle = value => {
 };
 throttle.addEventListener('input', () => setThrottle(Number(throttle.value) / 100));
 const keyMap = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
+// G closes the panels one at a time (controls list, scene selector, helm), then shows them all again.
+const hudSteps = ['hide-help', 'hide-scenes', 'hide-helm'];
+let hudState = 0;
+window.addEventListener('keydown', e => {
+  if (e.code !== 'KeyG' || e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
+  hudState = (hudState + 1) % (hudSteps.length + 1);
+  hudSteps.forEach((name, i) => document.body.classList.toggle(name, i < hudState));
+});
 window.addEventListener('keydown', e => {
   const key = keyMap[e.code];
   if (!key || e.altKey || e.ctrlKey || e.metaKey) return;

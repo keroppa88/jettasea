@@ -5,3 +5,21 @@
 .indigo{background:#43629b}.coral{background:#e79671}.summer{background:#32b7e9}
 .sea-state{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px;font-size:10px;color:#c9d5d2}.wave-choices{display:flex;gap:3px}.wave-choices button{width:30px;height:27px;border:1px solid #ffffff35;border-radius:4px;background:#ffffff12;color:#d4e3e7;cursor:pointer;font:12px Arial,sans-serif}.wave-choices button:hover,.wave-choices button:focus-visible{background:#ffffff32;outline:none}.wave-choices button.active{background:#e3e9de;color:#213641;border-color:#e3e9de;font-weight:bold}@media(max-width:720px){.sea-state{margin-top:7px}.wave-choices button{width:27px;height:25px}}
 @media(max-width:1100px){.toolbar{left:12px;right:12px;bottom:25px;flex-direction:column;gap:1px;max-width:none;transform:none}.swatches{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}.swatches .swatch:last-child:nth-child(odd){grid-column:1 / -1}.toolbar .swatch{padding:8px 6px}.toolbar .divider{display:none}.toolbar .text-button{padding:5px 9px}.helm{left:12px;bottom:185px}.hint{display:none}}
+
+/* Controls list (after car2026's #help panel), top left */
+#help{position:absolute;top:18px;left:18px;z-index:5;color:#eeeae0;background:#0d181dc9;border:1px solid #ffffff29;box-shadow:0 12px 44px #050c1180;backdrop-filter:blur(18px);border-radius:8px;padding:10px 14px;font-size:12px;line-height:1.9}
+#help b{display:inline-block;min-width:64px;text-align:center;background:#ffffff26;border-radius:4px;padding:1px 6px;margin-right:8px;font-family:monospace;font-weight:normal}
+#help .help-head{margin:9px 0 3px;padding-bottom:2px;border-bottom:1px solid #ffffff47;color:#9fd8f2;font-size:11px;font-weight:700;letter-spacing:2px}
+#help .help-head:first-child{margin-top:0}
+
+/* Sea scene selector: a tall window, one scene per line, top right */
+.toolbar,.toolbar[class]{top:18px;right:18px;left:auto;bottom:auto;transform:none;flex-direction:column;align-items:stretch;gap:2px;max-width:none;white-space:nowrap}
+.swatches,.swatches[class]{display:flex;flex-direction:column;gap:2px;width:auto}
+.toolbar .swatch,.toolbar .text-button{text-align:left;padding:9px 14px}
+.toolbar .divider,.toolbar .divider[class]{display:block;width:auto;height:1px;margin:3px 4px}
+.helm,.helm[class]{bottom:39px}
+
+/* G key toggles panels off one by one */
+body.hide-help #help,body.hide-scenes .toolbar,body.hide-helm .helm{display:none}
+
+@media(max-width:720px){#help{top:10px;left:10px;font-size:10.5px;padding:7px 10px;line-height:1.75}#help b{min-width:52px}.toolbar,.toolbar[class]{top:10px;right:10px;left:auto}.toolbar .swatch,.toolbar .text-button{padding:7px 10px}.helm,.helm[class]{bottom:30px}}

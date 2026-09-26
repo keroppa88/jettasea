@@ -13,12 +13,17 @@
 <body>
   <main id="app" aria-label="操船して移動できる3Dの海">
     <div id="scene"></div>
-    <div class="topline"><span class="mark">ZORN SEA / 01</span><span class="index">TUNA FISHING VESSEL</span></div>
-    <section class="intro" aria-label="作品説明">
-      <p class="eyebrow">AN INTERACTIVE VOYAGE</p>
-      <h1>波を越えて、<br>光の向こうへ。</h1>
-      <p class="description">マグロ漁船を操り、Zorn の絵に着想を得た海を進む。</p>
-    </section>
+    <div id="help" class="panel" aria-label="操作ボタン一覧">
+      <div class="help-head">操船</div>
+      <div><b>W / ↑</b>加速</div>
+      <div><b>S / ↓</b>減速</div>
+      <div><b>A / ←</b>左に舵</div>
+      <div><b>D / →</b>右に舵</div>
+      <div class="help-head">画面・視点</div>
+      <div><b>G</b>表示切替</div>
+      <div><b>ドラッグ</b>視点変更</div>
+      <div><b>ホイール</b>拡大 / 縮小</div>
+    </div>
     <div class="helm" aria-label="操船パネル">
       <div class="readout"><span>速度 <strong id="speed">00.0</strong> <small>kn</small></span><span>針路 <strong id="heading">000</strong><small>°</small></span></div>
       <div class="drive"><button type="button" id="left" aria-label="左に舵を切る">↶<small>左</small></button><div class="throttle"><label for="throttle">スロットル <span id="throttle-value">0%</span></label><input id="throttle" type="range" min="0" max="100" value="0" aria-label="スロットル"></div><button type="button" id="right" aria-label="右に舵を切る">↷<small>右</small></button></div>
