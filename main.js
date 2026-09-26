@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createPlaceholderBoat } from './boat.js';
 import { createClouds } from './clouds.js';
 import { createRain } from './rain.js';
+import { createAudio } from './audio.js';
 
 const container = document.querySelector('#scene');
 const error = document.querySelector('#error');
@@ -328,6 +329,8 @@ const setThrottle = value => {
 throttle.addEventListener('input', () => setThrottle(Number(throttle.value) / 100));
 const keyMap = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
 // G closes the panels one at a time (controls list, scene selector, helm), then shows them all again.
+createAudio();
+
 const hudSteps = ['hide-help', 'hide-scenes', 'hide-helm'];
 let hudState = 0;
 window.addEventListener('keydown', e => {
