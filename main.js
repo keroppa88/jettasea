@@ -411,12 +411,6 @@ function moveBoat(dt) {
   speedDisplay.textContent = state.speed.toFixed(1).padStart(4, '0');
   headingDisplay.textContent = String(((Math.round(-THREE.MathUtils.radToDeg(state.heading)) % 360) + 360) % 360).padStart(3, '0');
 }
-document.querySelector('#reset').addEventListener('click', () => {
-  const x = -Math.sin(state.heading), z = -Math.cos(state.heading);
-  camera.position.set(state.x - x * 19, boat.position.y + 6.8, state.z - z * 19);
-  controls.target.set(state.x, boat.position.y + 1.0, state.z);
-  controls.update();
-});
 
 function resize() {
   const { clientWidth: width, clientHeight: height } = container;
