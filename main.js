@@ -328,7 +328,6 @@ const setThrottle = value => {
 };
 throttle.addEventListener('input', () => setThrottle(Number(throttle.value) / 100));
 const keyMap = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
-// G closes the panels one at a time (controls list, scene selector, helm), then shows them all again.
 createAudio();
 
 // 1–5 select the wave level, same as the buttons.
@@ -338,7 +337,16 @@ window.addEventListener('keydown', e => {
   document.querySelector(`[data-wave="${level}"]`)?.click();
 });
 
-const hudSteps = ['hide-help', 'hide-scenes', 'hide-helm'];
+// U steps to the next sea scene.
+window.addEventListener('keydown', e => {
+  if (e.code !== 'KeyU' || e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
+  const buttons = [...document.querySelectorAll('[data-palette]')];
+  const current = buttons.findIndex(b => b.classList.contains('active'));
+  buttons[(current + 1) % buttons.length].click();
+});
+
+// G closes the panels one at a time (controls list, scene selector, helm, track name), then shows them all again.
+const hudSteps = ['hide-help', 'hide-scenes', 'hide-helm', 'hide-music'];
 let hudState = 0;
 window.addEventListener('keydown', e => {
   if (e.code !== 'KeyG' || e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;

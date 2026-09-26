@@ -132,6 +132,7 @@ export function createAudio() {
   function setNowPlaying(text) {
     if (!nowPlayingEl) {
       nowPlayingEl = document.createElement('div');
+      nowPlayingEl.id = 'now-playing';
       nowPlayingEl.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);'
         + 'z-index:5;color:#00ffd5;font-weight:400;font-size:21px;letter-spacing:1.5px;'
         + 'text-shadow:0 1px 2px rgba(0,0,0,0.95),0 0 1px rgba(0,0,0,0.9);'
