@@ -20,6 +20,6 @@
 .helm,.helm[class]{bottom:39px}
 
 /* G key toggles panels off one by one */
-body.hide-help #help,body.hide-scenes .toolbar,body.hide-helm .helm{display:none}
+body.hide-help #help,body.hide-scenes .toolbar,body.hide-helm .helm,body.hide-music #now-playing{display:none!important}
 
 @media(max-width:720px){#help{top:10px;left:10px;font-size:10.5px;padding:7px 10px;line-height:1.75}#help b{min-width:52px}.toolbar,.toolbar[class]{top:10px;right:10px;left:auto}.toolbar .swatch,.toolbar .text-button{padding:7px 10px}.helm,.helm[class]{bottom:30px}}
