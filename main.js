@@ -331,6 +331,13 @@ const keyMap = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', Arr
 // G closes the panels one at a time (controls list, scene selector, helm), then shows them all again.
 createAudio();
 
+// 1–5 select the wave level, same as the buttons.
+window.addEventListener('keydown', e => {
+  const level = (e.code.match(/^(?:Digit|Numpad)([1-5])$/) || [])[1];
+  if (!level || e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
+  document.querySelector(`[data-wave="${level}"]`)?.click();
+});
+
 const hudSteps = ['hide-help', 'hide-scenes', 'hide-helm'];
 let hudState = 0;
 window.addEventListener('keydown', e => {
