@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createPlaceholderBoat } from './boat.js';
 import { createClouds } from './clouds.js';
 import { createRain } from './rain.js';
+import { createAudio } from './audio.js';
 
 const container = document.querySelector('#scene');
 const error = document.querySelector('#error');
@@ -328,6 +329,15 @@ const setThrottle = value => {
 throttle.addEventListener('input', () => setThrottle(Number(throttle.value) / 100));
 const keyMap = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
 // G closes the panels one at a time (controls list, scene selector, helm), then shows them all again.
+createAudio();
+
+// 1–5 select the wave level, same as the buttons.
+window.addEventListener('keydown', e => {
+  const level = (e.code.match(/^(?:Digit|Numpad)([1-5])$/) || [])[1];
+  if (!level || e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
+  document.querySelector(`[data-wave="${level}"]`)?.click();
+});
+
 const hudSteps = ['hide-help', 'hide-scenes', 'hide-helm'];
 let hudState = 0;
 window.addEventListener('keydown', e => {
@@ -411,12 +421,6 @@ function moveBoat(dt) {
   speedDisplay.textContent = state.speed.toFixed(1).padStart(4, '0');
   headingDisplay.textContent = String(((Math.round(-THREE.MathUtils.radToDeg(state.heading)) % 360) + 360) % 360).padStart(3, '0');
 }
-document.querySelector('#reset').addEventListener('click', () => {
-  const x = -Math.sin(state.heading), z = -Math.cos(state.heading);
-  camera.position.set(state.x - x * 19, boat.position.y + 6.8, state.z - z * 19);
-  controls.target.set(state.x, boat.position.y + 1.0, state.z);
-  controls.update();
-});
 
 function resize() {
   const { clientWidth: width, clientHeight: height } = container;
